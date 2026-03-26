@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Timeboxer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --serif:'DM Serif Display',serif;
+  --sans:'Instrument Sans',sans-serif;
+  --mono:'DM Mono',monospace;
+  --ink:#1a1a18;
+  --ink2:#4a4a47;
+  --ink3:#888880;
+  --ink4:#b8b8b0;
+  --bg:#f5f4f0;
+  --surface:#ffffff;
+  --surface2:#f0efe9;
+  --border:#e2e1db;
+  --border2:#ccccc4;
+  --accent:#2a2a26;
+  --red:#c13030;
+  --red-bg:#fdf0f0;
+  --amber:#a06010;
+  --amber-bg:#fdf5e6;
+  --green:#2d7a45;
+  --green-bg:#edf7f1;
+  --blue:#1a5fa8;
+  --blue-bg:#eef4fc;
+  --shadow:0 1px 3px rgba(0,0,0,0.08),0 4px 12px rgba(0,0,0,0.06);
+  --shadow-lg:0 4px 16px rgba(0,0,0,0.1),0 12px 32px rgba(0,0,0,0.08);
+  --rad:6px;
+  --radlg:10px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --ink:#f0efe8;--ink2:#b8b8b0;--ink3:#888880;--ink4:#555550;
+    --bg:#181815;--surface:#222220;--surface2:#2a2a27;--border:#333330;--border2:#444440;
+    --accent:#e8e8e0;
+    --red:#e06060;--red-bg:#2a1818;--amber:#c89040;--amber-bg:#2a2010;
+    --green:#50b870;--green-bg:#102018;--blue:#5090d8;--blue-bg:#101828;
+    --shadow:0 1px 3px rgba(0,0,0,0.3),0 4px 12px rgba(0,0,0,0.2);
+    --shadow-lg:0 4px 16px rgba(0,0,0,0.4),0 12px 32px rgba(0,0,0,0.3);
+  }
+}
+
+html,body{min-height:100vh;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+@media(max-width:700px){.layout{grid-template-columns:1fr}}
+
+/* Sidebar */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:1.5rem 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+@media(max-width:700px){.sidebar{display:none}}
+.sidebar-logo{padding:0 1.25rem 1.5rem;border-bottom:1px solid var(--border)}
+.logo-text{font-family:var(--serif);font-size:22px;font-weight:400;letter-spacing:-0.5px}
+.logo-text em{font-style:italic;color:var(--ink3)}
+.logo-date{font-family:var(--mono);font-size:10px;color:var(--ink4);margin-top:2px;letter-spacing:0.5px}
+.sidebar-section{padding:1rem 1.25rem 0.5rem;font-family:var(--mono);font-size:10px;color:var(--ink4);letter-spacing:0.8px}
+.stream-nav{list-style:none}
+.stream-nav li{position:relative}
+.stream-link{display:flex;align-items:center;gap:8px;padding:6px 1.25rem;cursor:pointer;color:var(--ink2);font-size:13px;transition:all 0.12s;border-left:2px solid transparent;user-select:none}
+.stream-link:hover{color:var(--ink);background:var(--surface2)}
+.stream-link.active{color:var(--ink);background:var(--surface2);border-left-color:var(--accent);font-weight:500}
+.stream-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.stream-count{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--ink4);background:var(--surface2);padding:1px 5px;border-radius:9px}
+.stream-link.active .stream-count{background:var(--border)}
+.add-stream-btn{display:flex;align-items:center;gap:6px;margin:0.5rem 1.25rem;padding:6px 10px;font-size:12px;color:var(--ink3);border:1px dashed var(--border2);border-radius:var(--rad);cursor:pointer;background:none;font-family:var(--sans);transition:all 0.12s}
+.add-stream-btn:hover{color:var(--ink);border-color:var(--border2);background:var(--surface2)}
+.sidebar-stats{margin-top:auto;padding:1rem 1.25rem;border-top:1px solid var(--border)}
+.stat-item{display:flex;justify-content:space-between;font-size:12px;padding:2px 0}
+.stat-item span:first-child{color:var(--ink3)}
+.stat-item span:last-child{font-family:var(--mono);font-weight:500}
+.gcal-btn{display:flex;align-items:center;gap:6px;margin:0.5rem 0 0;padding:6px 10px;font-size:11px;color:var(--blue);border:1px solid var(--blue-bg);border-radius:var(--rad);cursor:pointer;background:var(--blue-bg);font-family:var(--sans);transition:all 0.12s;width:100%;justify-content:center}
+.gcal-btn:hover{opacity:0.85}
+
+/* Main */
+.main{display:flex;flex-direction:column;min-height:100vh}
+.topbar{display:flex;align-items:center;gap:10px;padding:1rem 1.5rem;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:10}
+.mobile-logo{font-family:var(--serif);font-size:18px;font-weight:400;letter-spacing:-0.3px;display:none}
+@media(max-width:700px){.mobile-logo{display:block}}
+.stream-title{font-family:var(--serif);font-size:18px;font-weight:400;letter-spacing:-0.3px;flex:1}
+.stream-title em{font-style:italic;color:var(--ink3)}
+.topbar-actions{display:flex;gap:6px}
+.icon-btn{padding:5px 10px;border:1px solid var(--border);border-radius:var(--rad);background:none;color:var(--ink2);cursor:pointer;font-size:11px;font-family:var(--mono);transition:all 0.12s}
+.icon-btn:hover{background:var(--surface2);color:var(--ink)}
+
+.content{flex:1;padding:1.5rem}
+
+/* Add form */
+.add-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radlg);padding:1rem 1.25rem;margin-bottom:1.25rem;box-shadow:var(--shadow)}
+.add-row1{display:flex;gap:8px;margin-bottom:8px}
+.add-title{flex:1;font-size:14px;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--ink);font-family:var(--sans);outline:none;transition:border-color 0.12s}
+.add-title:focus{border-color:var(--accent)}
+.add-title::placeholder{color:var(--ink4)}
+.add-row2{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.add-row2 select,.add-row2 input[type=date]{font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:var(--rad);background:var(--surface);color:var(--ink);font-family:var(--sans);cursor:pointer;outline:none}
+.add-row2 input[type=date]{font-family:var(--mono);color:var(--ink2)}
+.add-submit{margin-left:auto;padding:7px 16px;background:var(--accent);color:var(--bg);border:none;border-radius:var(--rad);font-size:13px;font-weight:500;font-family:var(--sans);cursor:pointer;transition:opacity 0.12s}
+.add-submit:hover{opacity:0.85}
+
+/* Filters */
+.filter-bar{display:flex;gap:6px;margin-bottom:1rem;align-items:center;flex-wrap:wrap}
+.filter-label{font-size:10px;font-family:var(--mono);color:var(--ink4);letter-spacing:0.5px;margin-right:2px}
+.fb{font-size:11px;font-family:var(--mono);padding:3px 9px;border-radius:9px;border:1px solid var(--border);background:none;color:var(--ink3);cursor:pointer;transition:all 0.12s}
+.fb:hover,.fb.on{background:var(--surface2);color:var(--ink);border-color:var(--border2)}
+.filter-sep{width:1px;height:14px;background:var(--border);margin:0 4px}
+
+/* Items */
+.section-label{font-family:var(--mono);font-size:10px;color:var(--ink4);letter-spacing:0.8px;padding:6px 0 4px;border-bottom:1px solid var(--border);margin-bottom:8px}
+.items{display:flex;flex-direction:column;gap:5px;margin-bottom:1.5rem}
+.item{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radlg);background:var(--surface);transition:all 0.15s;animation:fadeIn 0.2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.item:hover{border-color:var(--border2);box-shadow:var(--shadow)}
+.item.done{opacity:0.45}
+.item.overdue{border-left:2.5px solid var(--red)}
+.item.due-soon{border-left:2.5px solid var(--amber)}
+.check{width:17px;height:17px;border-radius:50%;border:1.5px solid var(--border2);cursor:pointer;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all 0.15s}
+.check:hover{border-color:var(--accent);background:var(--surface2)}
+.check.checked{background:var(--accent);border-color:var(--accent)}
+.check.checked::after{content:'';display:block;width:5px;height:3px;border-left:1.5px solid var(--bg);border-bottom:1.5px solid var(--bg);transform:rotate(-45deg) translate(0.5px,-0.5px)}
+.item-body{flex:1;min-width:0}
+.item-title{font-size:13px;font-weight:500;line-height:1.4;word-break:break-word}
+.item.done .item-title{text-decoration:line-through}
+.item-meta{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;align-items:center}
+.pri{font-size:10px;font-family:var(--mono);padding:1px 6px;border-radius:3px;font-weight:500}
+.pri.p1{background:var(--red-bg);color:var(--red)}
+.pri.p2{background:var(--amber-bg);color:var(--amber)}
+.pri.p3{background:var(--green-bg);color:var(--green)}
+.pri.p4{background:var(--surface2);color:var(--ink3)}
+.dtag{font-size:10px;font-family:var(--mono);color:var(--ink4)}
+.dtag.overdue{color:var(--red)}
+.dtag.soon{color:var(--amber)}
+.dtag.done-d{color:var(--ink4)}
+.stream-badge{font-size:10px;font-family:var(--mono);padding:1px 6px;border-radius:3px}
+.item-actions{display:flex;gap:4px;opacity:0;transition:opacity 0.15s;flex-shrink:0}
+.item:hover .item-actions{opacity:1}
+@media(max-width:700px){.item-actions{opacity:1}}
+.act{font-size:10px;padding:2px 7px;border:1px solid var(--border);border-radius:3px;cursor:pointer;background:none;color:var(--ink3);font-family:var(--mono);transition:all 0.12s}
+.act:hover{background:var(--surface2);color:var(--ink)}
+.act.del:hover{background:var(--red-bg);color:var(--red);border-color:var(--red-bg)}
+.act.cal:hover{background:var(--blue-bg);color:var(--blue);border-color:var(--blue-bg)}
+
+/* Progress */
+.stream-progress{margin-bottom:1.25rem;padding:1rem 1.25rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--radlg)}
+.progress-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.progress-name{font-size:13px;font-weight:500}
+.progress-pct{font-family:var(--mono);font-size:11px;color:var(--ink3)}
+.pbar{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.pbar-fill{height:100%;background:var(--accent);border-radius:2px;transition:width 0.5s ease}
+
+/* Empty */
+.empty{text-align:center;padding:3rem 1rem;color:var(--ink4)}
+.empty-title{font-family:var(--serif);font-size:20px;font-style:italic;display:block;margin-bottom:6px;color:var(--ink3)}
+
+/* Modal */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:100;align-items:center;justify-content:center;padding:1rem}
+.overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radlg);padding:1.5rem;width:380px;max-width:100%;box-shadow:var(--shadow-lg);animation:slideUp 0.2s ease}
+@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.modal h3{font-family:var(--serif);font-size:20px;font-weight:400;margin-bottom:1.25rem}
+.field{margin-bottom:0.9rem}
+.field label{font-size:10px;font-family:var(--mono);color:var(--ink3);letter-spacing:0.5px;display:block;margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;font-size:13px;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--ink);font-family:var(--sans);outline:none;transition:border-color 0.12s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
+.field textarea{resize:vertical;min-height:60px}
+.field input[type=date]{font-family:var(--mono)}
+.field input[type=color]{height:34px;padding:2px 4px;cursor:pointer}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:1rem}
+.btn-cancel{padding:7px 14px;border:1px solid var(--border);border-radius:var(--rad);background:none;color:var(--ink2);cursor:pointer;font-size:13px;font-family:var(--sans);transition:all 0.12s}
+.btn-cancel:hover{background:var(--surface2)}
+.btn-save{padding:7px 16px;border:none;border-radius:var(--rad);background:var(--accent);color:var(--bg);cursor:pointer;font-size:13px;font-weight:500;font-family:var(--sans);transition:opacity 0.12s}
+.btn-save:hover{opacity:0.85}
+.color-swatches{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.swatch{width:22px;height:22px;border-radius:50%;cursor:pointer;transition:all 0.12s;border:2px solid transparent}
+.swatch.selected{outline:2px solid var(--accent);outline-offset:2px}
+
+/* GCal setup */
+.gcal-info{font-size:12px;color:var(--ink2);line-height:1.7;margin-bottom:1rem;padding:10px;background:var(--blue-bg);border-radius:var(--rad)}
+.gcal-info a{color:var(--blue);text-decoration:none}
+.gcal-info a:hover{text-decoration:underline}
+.gcal-steps{font-size:12px;color:var(--ink2);line-height:2;padding-left:1.2rem}
+
+/* Toast */
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--accent);color:var(--bg);padding:8px 16px;border-radius:var(--rad);font-size:13px;font-family:var(--sans);z-index:200;animation:toastIn 0.2s ease;pointer-events:none}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-text">Time<em>boxer</em></div>
+      <div class="logo-date" id="sb-date"></div>
+    </div>
+    <div class="sidebar-section">STREAMS</div>
+    <ul class="stream-nav" id="stream-nav"></ul>
+    <button class="add-stream-btn" onclick="openStreamModal()">+ new stream</button>
+    <div class="sidebar-stats" id="sidebar-stats"></div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div class="mobile-logo">Time<em style="font-style:italic;color:#888">boxer</em></div>
+      <div class="stream-title" id="stream-title"></div>
+      <div class="topbar-actions">
+        <button class="icon-btn" onclick="openGCalModal()">+ gcal</button>
+        <button class="icon-btn" onclick="exportICS()">↓ .ics</button>
+      </div>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal-inner"></div>
+</div>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────────────────
+const COLORS=['#2a7de1','#1d9e75','#d85a30','#c44d8a','#7060d0','#b8860b','#e05050','#2d9c6a','#555550'];
+const PRI={1:'urgent',2:'high',3:'normal',4:'low'};
+
+let S={
+  streams:[
+    {id:'s1',name:'Work',color:'#2a7de1'},
+    {id:'s2',name:'Personal',color:'#1d9e75'},
+    {id:'s3',name:'Learning',color:'#d85a30'}
+  ],
+  items:[],
+  active:'all',
+  filterPri:null,
+  filterDone:false,
+  sortBy:'priority',
+  gcalClientId:''
+};
+
+function save(){try{localStorage.setItem('tbx2',JSON.stringify(S))}catch(e){}}
+function load(){try{const d=localStorage.getItem('tbx2');if(d){const p=JSON.parse(d);S={...S,...p}}}catch(e){}}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+const uid=()=>'i'+Date.now()+Math.random().toString(36).slice(2,6);
+const today=()=>new Date().toISOString().split('T')[0];
+const fmtD=s=>{if(!s)return'';const[y,m,d]=s.split('-');return`${m}/${d}/${y.slice(2)}`};
+const diffDays=s=>{if(!s)return null;const t=new Date(s+'T00:00:00'),n=new Date();n.setHours(0,0,0,0);return Math.round((t-n)/86400000)};
+const stream=id=>S.streams.find(s=>s.id===id);
+
+function toast(msg){
+  const el=document.createElement('div');
+  el.className='toast';el.textContent=msg;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),2500);
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function render(){
+  renderDate();renderNav();renderStats();renderMain();
+}
+
+function renderDate(){
+  document.getElementById('sb-date').textContent=new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}).toUpperCase();
+}
+
+function renderNav(){
+  const allOpen=S.items.filter(i=>!i.done).length;
+  let html=`<li><div class="stream-link ${S.active==='all'?'active':''}" onclick="setStream('all')"><span class="stream-dot" style="background:var(--ink4)"></span>All items<span class="stream-count">${allOpen}</span></div></li>`;
+  S.streams.forEach(s=>{
+    const c=S.items.filter(i=>i.stream===s.id&&!i.done).length;
+    html+=`<li><div class="stream-link ${S.active===s.id?'active':''}" onclick="setStream('${s.id}')"><span class="stream-dot" style="background:${s.color}"></span>${s.name}<span class="stream-count">${c}</span></div></li>`;
+  });
+  document.getElementById('stream-nav').innerHTML=html;
+}
+
+function renderStats(){
+  const open=S.items.filter(i=>!i.done);
+  const overdue=open.filter(i=>i.due&&diffDays(i.due)<0).length;
+  const done=S.items.filter(i=>i.done).length;
+  const soon=open.filter(i=>i.due&&diffDays(i.due)>=0&&diffDays(i.due)<=3).length;
+  document.getElementById('sidebar-stats').innerHTML=`
+    <div class="stat-item"><span>Open</span><span>${open.length}</span></div>
+    <div class="stat-item"><span>Overdue</span><span style="color:var(--red)">${overdue}</span></div>
+    <div class="stat-item"><span>Due soon</span><span style="color:var(--amber)">${soon}</span></div>
+    <div class="stat-item"><span>Completed</span><span style="color:var(--green)">${done}</span></div>
+    ${S.gcalClientId?`<button class="gcal-btn" onclick="syncToGCal()">↑ Sync to Google Calendar</button>`:`<button class="gcal-btn" onclick="openGCalModal()">Connect Google Calendar</button>`}
+  `;
+}
+
+function renderMain(){
+  const s=stream(S.active);
+  document.getElementById('stream-title').innerHTML=s?`${s.name}`:`All <em>streams</em>`;
+
+  let items=[...S.items];
+  if(S.active!=='all') items=items.filter(i=>i.stream===S.active);
+  if(!S.filterDone) items=items.filter(i=>!i.done);
+  if(S.filterPri) items=items.filter(i=>i.priority===S.filterPri);
+  if(S.sortBy==='priority') items.sort((a,b)=>a.priority-b.priority||(a.due||'z').localeCompare(b.due||'z'));
+  else if(S.sortBy==='due') items.sort((a,b)=>(a.due||'z').localeCompare(b.due||'z'));
+  else if(S.sortBy==='added') items.sort((a,b)=>b.added.localeCompare(a.added));
+
+  const open=items.filter(i=>!i.done);
+  const done=items.filter(i=>i.done);
+  const streamId=S.active==='all'?S.streams[0]?.id:S.active;
+
+  let progressHtml='';
+  if(s){
+    const total=S.items.filter(i=>i.stream===s.id);
+    const doneCount=total.filter(i=>i.done).length;
+    const pct=total.length?Math.round(doneCount/total.length*100):0;
+    progressHtml=`<div class="stream-progress"><div class="progress-head"><span class="progress-name">${s.name}</span><span class="progress-pct">${doneCount} / ${total.length} completed · ${pct}%</span></div><div class="pbar"><div class="pbar-fill" style="width:${pct}%"></div></div></div>`;
+  }
+
+  const filterBar=`<div class="filter-bar">
+    <span class="filter-label">PRI</span>
+    <button class="fb ${!S.filterPri?'on':''}" onclick="setPri(null)">all</button>
+    <button class="fb ${S.filterPri===1?'on':''}" onclick="setPri(1)">urgent</button>
+    <button class="fb ${S.filterPri===2?'on':''}" onclick="setPri(2)">high</button>
+    <button class="fb ${S.filterPri===3?'on':''}" onclick="setPri(3)">normal</button>
+    <button class="fb ${S.filterPri===4?'on':''}" onclick="setPri(4)">low</button>
+    <div class="filter-sep"></div>
+    <span class="filter-label">SORT</span>
+    <button class="fb ${S.sortBy==='priority'?'on':''}" onclick="setSort('priority')">priority</button>
+    <button class="fb ${S.sortBy==='due'?'on':''}" onclick="setSort('due')">due</button>
+    <button class="fb ${S.sortBy==='added'?'on':''}" onclick="setSort('added')">newest</button>
+    <div class="filter-sep"></div>
+    <button class="fb ${S.filterDone?'on':''}" onclick="toggleDone()">show done</button>
+  </div>`;
+
+  const addForm=`<div class="add-card">
+    <div class="add-row1">
+      <input class="add-title" id="new-title" type="text" placeholder="What needs to get done?" onkeydown="if(event.key==='Enter')addItem()">
+    </div>
+    <div class="add-row2">
+      ${S.active==='all'?`<select id="new-stream">${S.streams.map(st=>`<option value="${st.id}">${st.name}</option>`).join('')}</select>`:''}
+      <select id="new-pri">
+        <option value="1">🔴 urgent</option>
+        <option value="2">🟠 high</option>
+        <option value="3" selected>🟢 normal</option>
+        <option value="4">⚪ low</option>
+      </select>
+      <input type="date" id="new-due" title="Due date">
+      <button class="add-submit" onclick="addItem()">Add →</button>
+    </div>
+  </div>`;
+
+  const itemsHtml=open.length
+    ?`<div class="items">${open.map(renderItem).join('')}</div>`
+    :`<div class="empty"><span class="empty-title">All clear.</span>Nothing here — add something above.</div>`;
+
+  const doneHtml=done.length?`<div class="section-label">COMPLETED (${done.length})</div><div class="items">${done.map(renderItem).join('')}</div>`:'';
+
+  document.getElementById('content').innerHTML=progressHtml+addForm+filterBar+itemsHtml+doneHtml;
+}
+
+function renderItem(item){
+  const d=diffDays(item.due);
+  let cls='item';
+  if(item.done) cls+=' done';
+  else if(d!==null&&d<0) cls+=' overdue';
+  else if(d!==null&&d<=3) cls+=' due-soon';
+
+  let dueHtml='';
+  if(item.due){
+    if(item.done&&item.completed) dueHtml=`<span class="dtag done-d">done ${fmtD(item.completed)}</span>`;
+    else if(d<0) dueHtml=`<span class="dtag overdue">overdue ${Math.abs(d)}d</span>`;
+    else if(d===0) dueHtml=`<span class="dtag soon">due today</span>`;
+    else if(d<=3) dueHtml=`<span class="dtag soon">in ${d}d</span>`;
+    else dueHtml=`<span class="dtag">due ${fmtD(item.due)}</span>`;
+  }
+
+  const s=stream(item.stream);
+  const badge=S.active==='all'&&s
+    ?`<span class="stream-badge" style="background:${s.color}18;color:${s.color}">◆ ${s.name}</span>`:'';
+
+  return`<div class="${cls}" id="item-${item.id}">
+    <div class="check ${item.done?'checked':''}" onclick="toggleItem('${item.id}')"></div>
+    <div class="item-body">
+      <div class="item-title">${item.title}</div>
+      <div class="item-meta">
+        <span class="pri p${item.priority}">${PRI[item.priority]}</span>
+        ${badge}
+        <span class="dtag">added ${fmtD(item.added)}</span>
+        ${dueHtml}
+      </div>
+    </div>
+    <div class="item-actions">
+      ${item.due?`<button class="act cal" onclick="addToCalendar('${item.id}')" title="Add to calendar">cal</button>`:''}
+      <button class="act" onclick="editItem('${item.id}')">edit</button>
+      <button class="act del" onclick="deleteItem('${item.id}')">del</button>
+    </div>
+  </div>`;
+}
+
+// ─── Actions ──────────────────────────────────────────────────────────────────
+function setStream(id){S.active=id;render();save()}
+function setPri(p){S.filterPri=p;render();save()}
+function setSort(s){S.sortBy=s;render();save()}
+function toggleDone(){S.filterDone=!S.filterDone;render();save()}
+
+function addItem(){
+  const t=document.getElementById('new-title');
+  const title=t.value.trim();
+  if(!title)return;
+  const streamEl=document.getElementById('new-stream');
+  const streamId=streamEl?streamEl.value:(S.active==='all'?S.streams[0]?.id:S.active);
+  const pri=parseInt(document.getElementById('new-pri').value);
+  const due=document.getElementById('new-due').value||null;
+  S.items.push({id:uid(),stream:streamId,title,priority:pri,added:today(),due,done:false,completed:null,notes:''});
+  t.value='';document.getElementById('new-due').value='';
+  render();save();toast('Item added');
+}
+
+function toggleItem(id){
+  const item=S.items.find(i=>i.id===id);
+  item.done=!item.done;item.completed=item.done?today():null;
+  render();save();
+}
+
+function deleteItem(id){
+  if(!confirm('Delete this item?'))return;
+  S.items=S.items.filter(i=>i.id!==id);render();save();toast('Deleted');
+}
+
+function editItem(id){
+  const item=S.items.find(i=>i.id===id);
+  openModal(`<h3>Edit item</h3>
+    <div class="field"><label>TITLE</label><input type="text" id="e-title" value="${item.title.replace(/"/g,'&quot;')}"></div>
+    <div class="field"><label>STREAM</label><select id="e-stream">${S.streams.map(s=>`<option value="${s.id}"${s.id===item.stream?' selected':''}>${s.name}</option>`).join('')}</select></div>
+    <div class="field"><label>PRIORITY</label><select id="e-pri">
+      <option value="1"${item.priority===1?' selected':''}>urgent</option>
+      <option value="2"${item.priority===2?' selected':''}>high</option>
+      <option value="3"${item.priority===3?' selected':''}>normal</option>
+      <option value="4"${item.priority===4?' selected':''}>low</option>
+    </select></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field"><label>DUE DATE</label><input type="date" id="e-due" value="${item.due||''}"></div>
+      <div class="field"><label>ADDED DATE</label><input type="date" id="e-added" value="${item.added||''}"></div>
+    </div>
+    <div class="field"><label>NOTES</label><textarea id="e-notes" placeholder="Optional notes…">${item.notes||''}</textarea></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">cancel</button>
+      <button class="btn-save" onclick="saveEdit('${id}')">save changes</button>
+    </div>`);
+}
+
+function saveEdit(id){
+  const item=S.items.find(i=>i.id===id);
+  const t=document.getElementById('e-title').value.trim();
+  if(!t)return;
+  item.title=t;
+  item.stream=document.getElementById('e-stream').value;
+  item.priority=parseInt(document.getElementById('e-pri').value);
+  item.due=document.getElementById('e-due').value||null;
+  item.added=document.getElementById('e-added').value||item.added;
+  item.notes=document.getElementById('e-notes').value;
+  closeModal();render();save();toast('Saved');
+}
+
+// ─── Stream modal ─────────────────────────────────────────────────────────────
+function openStreamModal(editId){
+  const s=editId?stream(editId):null;
+  const selectedColor=s?s.color:COLORS[0];
+  openModal(`<h3>${s?'Edit stream':'New stream'}</h3>
+    <div class="field"><label>NAME</label><input type="text" id="ns-name" value="${s?s.name:''}" placeholder="e.g. Side project"></div>
+    <div class="field">
+      <label>COLOR</label>
+      <div class="color-swatches">
+        ${COLORS.map(c=>`<div class="swatch ${c===selectedColor?'selected':''}" style="background:${c}" data-c="${c}" onclick="selectColor(this,'${c}')"></div>`).join('')}
+      </div>
+      <input type="hidden" id="ns-color" value="${selectedColor}">
+    </div>
+    <div class="modal-btns">
+      ${s?`<button class="btn-cancel" style="color:var(--red)" onclick="deleteStream('${editId}')">delete</button>`:''}
+      <button class="btn-cancel" onclick="closeModal()">cancel</button>
+      <button class="btn-save" onclick="${s?`saveStreamEdit('${editId}')`:'createStream()'}">save</button>
+    </div>`);
+}
+
+function selectColor(el,c){
+  document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('ns-color').value=c;
+}
+
+function createStream(){
+  const name=document.getElementById('ns-name').value.trim();
+  if(!name)return;
+  const color=document.getElementById('ns-color').value;
+  S.streams.push({id:'s'+Date.now(),name,color});
+  closeModal();render();save();toast('Stream created');
+}
+
+function saveStreamEdit(id){
+  const s=stream(id);
+  s.name=document.getElementById('ns-name').value.trim()||s.name;
+  s.color=document.getElementById('ns-color').value;
+  closeModal();render();save();toast('Stream updated');
+}
+
+function deleteStream(id){
+  if(!confirm('Delete stream and all its items?'))return;
+  S.streams=S.streams.filter(s=>s.id!==id);
+  S.items=S.items.filter(i=>i.stream!==id);
+  if(S.active===id)S.active='all';
+  closeModal();render();save();toast('Stream deleted');
+}
+
+// ─── Calendar ─────────────────────────────────────────────────────────────────
+function exportICS(){
+  const items=S.items.filter(i=>i.due&&!i.done);
+  if(!items.length){toast('No items with due dates');return}
+  let ics='BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Timeboxer//EN\nCALSCALE:GREGORIAN\n';
+  items.forEach(item=>{
+    const d=item.due.replace(/-/g,'');
+    const s=stream(item.stream);
+    ics+=`BEGIN:VEVENT\nUID:${item.id}@timeboxer\nSUMMARY:${item.title}${s?' ['+s.name+']':''}\nDTSTART;VALUE=DATE:${d}\nDTEND;VALUE=DATE:${d}\nPRIORITY:${item.priority}\n${item.notes?'DESCRIPTION:'+item.notes+'\n':''}END:VEVENT\n`;
+  });
+  ics+='END:VCALENDAR';
+  const blob=new Blob([ics],{type:'text/calendar'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='timeboxer.ics';a.click();
+  URL.revokeObjectURL(url);
+  toast(`Exported ${items.length} items`);
+}
+
+function openGCalModal(){
+  openModal(`<h3>Google Calendar setup</h3>
+    <div class="gcal-info">
+      To add due dates directly to Google Calendar, you need a free Google OAuth Client ID.
+      This takes ~5 minutes once and lives entirely in your browser — no server needed.
+    </div>
+    <div class="field">
+      <label>STEPS TO GET YOUR CLIENT ID</label>
+      <ol class="gcal-steps">
+        <li>Go to <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a></li>
+        <li>Create a new project (or use existing)</li>
+        <li>Enable the <strong>Google Calendar API</strong></li>
+        <li>Go to Credentials → Create → OAuth 2.0 Client ID</li>
+        <li>Type: <strong>Web application</strong></li>
+        <li>Add your Netlify URL to "Authorized JS origins"</li>
+        <li>Copy the Client ID and paste below</li>
+      </ol>
+    </div>
+    <div class="field"><label>GOOGLE OAUTH CLIENT ID</label><input type="text" id="gcal-id" value="${S.gcalClientId||''}" placeholder="xxxxxxxxx.apps.googleusercontent.com"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">cancel</button>
+      <button class="btn-save" onclick="saveGCal()">save</button>
+    </div>`);
+}
+
+function saveGCal(){
+  S.gcalClientId=document.getElementById('gcal-id').value.trim();
+  closeModal();save();render();
+  if(S.gcalClientId)toast('Google Calendar connected');
+}
+
+function addToCalendar(id){
+  const item=S.items.find(i=>i.id===id);
+  if(!S.gcalClientId){
+    // Fallback: open Google Calendar quick-add URL
+    if(!item.due){toast('No due date set');return}
+    const d=item.due.replace(/-/g,'');
+    const s=stream(item.stream);
+    const title=encodeURIComponent(item.title+(s?' ['+s.name+']':''));
+    window.open(`https://calendar.google.com/calendar/r/eventedit?text=${title}&dates=${d}/${d}${item.notes?'&details='+encodeURIComponent(item.notes):''}`, '_blank');
+    return;
+  }
+  toast('Initializing Google Calendar…');
+  initGCal(()=>createGCalEvent(item));
+}
+
+function syncToGCal(){
+  const items=S.items.filter(i=>i.due&&!i.done);
+  if(!items.length){toast('No items with due dates');return}
+  toast('Syncing…');
+  initGCal(()=>{
+    let count=0;
+    items.forEach(item=>createGCalEvent(item,()=>{count++;if(count===items.length)toast(`Synced ${count} items`)}));
+  });
+}
+
+function initGCal(callback){
+  if(window.gapi&&window.gapi.auth2){callback();return}
+  const script=document.createElement('script');
+  script.src='https://apis.google.com/js/api.js';
+  script.onload=()=>{
+    gapi.load('client:auth2',()=>{
+      gapi.client.init({clientId:S.gcalClientId,scope:'https://www.googleapis.com/auth/calendar.events',discoveryDocs:['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest']})
+      .then(()=>{
+        if(!gapi.auth2.getAuthInstance().isSignedIn.get()){
+          gapi.auth2.getAuthInstance().signIn().then(callback);
+        } else {callback()}
+      });
+    });
+  };
+  document.head.appendChild(script);
+}
+
+function createGCalEvent(item, cb){
+  const s=stream(item.stream);
+  gapi.client.calendar.events.insert({
+    calendarId:'primary',
+    resource:{
+      summary:item.title+(s?' ['+s.name+']':''),
+      description:item.notes||'',
+      start:{date:item.due},
+      end:{date:item.due},
+      colorId:item.priority===1?'11':item.priority===2?'5':'1'
+    }
+  }).then(()=>{if(cb)cb();else toast('Added to Google Calendar')})
+  .catch(()=>toast('Calendar error — check OAuth setup'));
+}
+
+// ─── Modal helpers ────────────────────────────────────────────────────────────
+function openModal(html){document.getElementById('modal-inner').innerHTML=html;document.getElementById('overlay').classList.add('open')}
+function closeModal(){document.getElementById('overlay').classList.remove('open')}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+load();render();
+</script>
+</body>
+</html>
